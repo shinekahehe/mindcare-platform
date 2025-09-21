@@ -37,7 +37,8 @@ ALLOWED_HOSTS = [
     '.railway.app',
     '.vercel.app',
     '.herokuapp.com',
-    '.render.com'
+    '.render.com',
+    'mindcare-platform.onrender.com'
 ]
 
 
