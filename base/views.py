@@ -598,6 +598,21 @@ def simple_env_test(request):
         'environment_variables': relevant_vars,
         'gemini_key_exists': bool(os.getenv('GEMINI_API_KEY')),
         'gemini_key_length': len(os.getenv('GEMINI_API_KEY', '')),
+        'all_env_vars': dict(os.environ),  # Show ALL environment variables
+    }, status=200)
+
+def manual_env_setup(request):
+    """Manual environment setup for testing"""
+    import os
+    
+    # Manually set the environment variables for testing
+    test_gemini_key = "AIzaSyDuELzG5dFcRox6UDAhML6DOUEh2-d232E"
+    os.environ['GEMINI_API_KEY'] = test_gemini_key
+    
+    return JsonResponse({
+        'message': 'Manually set GEMINI_API_KEY for testing',
+        'gemini_key_set': bool(os.getenv('GEMINI_API_KEY')),
+        'gemini_key_value': os.getenv('GEMINI_API_KEY', '')[:10] + "..." + os.getenv('GEMINI_API_KEY', '')[-4:] if os.getenv('GEMINI_API_KEY') else 'NOT SET',
     }, status=200)
 
 @require_http_methods(["POST"])

@@ -17,6 +17,15 @@ import logging
 # Import environment configuration
 from .settings_env import ENV_CONFIG
 
+# Debug: Log environment variables on startup
+import logging
+logger = logging.getLogger(__name__)
+logger.info("=== ENVIRONMENT VARIABLES DEBUG ===")
+logger.info(f"GEMINI_API_KEY from os.getenv: {'SET' if os.getenv('GEMINI_API_KEY') else 'NOT SET'}")
+logger.info(f"SUPABASE_URL from os.getenv: {'SET' if os.getenv('SUPABASE_URL') else 'NOT SET'}")
+logger.info(f"RENDER env var: {'SET' if os.getenv('RENDER') else 'NOT SET'}")
+logger.info("=== END ENVIRONMENT DEBUG ===")
+
 # Import database URL parser
 try:
     import dj_database_url  # type: ignore
