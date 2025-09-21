@@ -71,6 +71,10 @@ def get_environment_config():
     # Boolean settings
     config['DEBUG'] = get_bool('DEBUG', False)
     
+    # ALLOWED_HOSTS configuration
+    allowed_hosts = get_env('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver')
+    config['ALLOWED_HOSTS'] = [host.strip() for host in allowed_hosts.split(',') if host.strip()]
+    
     # Validate Supabase URL
     if config['SUPABASE_URL']:
         validated_url, project_ref = validate_supabase_url(config['SUPABASE_URL'])

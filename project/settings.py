@@ -39,7 +39,7 @@ SECRET_KEY = ENV_CONFIG.get('SECRET_KEY', 'django-insecure-e8%q@h1rxa8tp7r)m91u(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ENV_CONFIG['DEBUG']
 
-ALLOWED_HOSTS = ENV_CONFIG.get('ALLOWED_HOSTS', ['localhost', '127.0.0.1', 'testserver'])
+ALLOWED_HOSTS = ENV_CONFIG['ALLOWED_HOSTS']
 
 
 # Application definition
