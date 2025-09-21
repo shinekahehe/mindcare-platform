@@ -72,7 +72,7 @@ def get_environment_config():
     config['DEBUG'] = get_bool('DEBUG', False)
     
     # ALLOWED_HOSTS configuration
-    allowed_hosts = get_env('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver')
+    allowed_hosts = get_env('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver,mindcare-platform-1.onrender.com,mindcare-platform.onrender.com')
     config['ALLOWED_HOSTS'] = [host.strip() for host in allowed_hosts.split(',') if host.strip()]
     
     # Validate Supabase URL

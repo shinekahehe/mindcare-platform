@@ -167,3 +167,19 @@ SUPABASE_PROJECT_REF = ENV_CONFIG.get('SUPABASE_PROJECT_REF')
 
 # Gemini API Configuration
 GEMINI_API_KEY = ENV_CONFIG['GEMINI_API_KEY']
+
+# CSRF Configuration for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://mindcare-platform-1.onrender.com',
+    'https://mindcare-platform.onrender.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
+# CORS Configuration (if needed for API calls)
+CORS_ALLOWED_ORIGINS = [
+    'https://mindcare-platform-1.onrender.com',
+    'https://mindcare-platform.onrender.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
