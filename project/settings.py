@@ -17,15 +17,6 @@ import logging
 # Import environment configuration
 from .settings_env import ENV_CONFIG
 
-# Debug: Log environment variables on startup
-import logging
-logger = logging.getLogger(__name__)
-logger.info("=== ENVIRONMENT VARIABLES DEBUG ===")
-logger.info(f"GEMINI_API_KEY from os.getenv: {'SET' if os.getenv('GEMINI_API_KEY') else 'NOT SET'}")
-logger.info(f"SUPABASE_URL from os.getenv: {'SET' if os.getenv('SUPABASE_URL') else 'NOT SET'}")
-logger.info(f"RENDER env var: {'SET' if os.getenv('RENDER') else 'NOT SET'}")
-logger.info("=== END ENVIRONMENT DEBUG ===")
-
 # Import database URL parser
 try:
     import dj_database_url  # type: ignore
@@ -43,12 +34,12 @@ logger = logging.getLogger(__name__)
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ENV_CONFIG['SECRET_KEY']
+SECRET_KEY = ENV_CONFIG.get('SECRET_KEY', 'django-insecure-e8%q@h1rxa8tp7r)m91u(7it5wwhe3(e-8uz00!*-d1st7drl%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ENV_CONFIG['DEBUG']
 
-ALLOWED_HOSTS = ENV_CONFIG['ALLOWED_HOSTS']
+ALLOWED_HOSTS = ENV_CONFIG.get('ALLOWED_HOSTS', ['localhost', '127.0.0.1', 'testserver'])
 
 
 # Application definition
@@ -100,28 +91,30 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration with fallback
-def get_database_config():
-    """Get database configuration with fallback to SQLite"""
-    if ENV_CONFIG['DATABASE_URL'] and dj_database_url and os.getenv("RENDER"):
-        try:
-            # Test if we can parse the database URL
-            db_config = dj_database_url.parse(ENV_CONFIG['DATABASE_URL'])
-            logger.info("Using PostgreSQL database from DATABASE_URL (Render)")
-            return db_config
-        except Exception as e:
-            logger.error(f"Failed to parse DATABASE_URL: {e}")
-            logger.info("Falling back to SQLite database")
-    
-    # Use SQLite as fallback
-    return {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Database configuration
+if ENV_CONFIG['DATABASE_URL'] and dj_database_url:
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(default=ENV_CONFIG['DATABASE_URL'])
+        }
+        logger.info("Using PostgreSQL from DATABASE_URL (Render)")
+    except Exception as e:
+        logger.error(f"Failed to parse DATABASE_URL: {e}")
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+        logger.info("Falling back to SQLite database")
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-
-DATABASES = {
-    'default': get_database_config()
-}
+    logger.info("Using SQLite database (no DATABASE_URL provided)")
 
 
 # Password validation

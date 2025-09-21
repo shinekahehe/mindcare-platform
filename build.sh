@@ -11,13 +11,8 @@ pip install -r requirements.txt
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Try to run migrations with fallback
+# Run database migrations
 echo "🗄️ Running database migrations..."
-if python manage.py migrate --noinput; then
-    echo "✅ Database migrations completed successfully"
-else
-    echo "⚠️ Database migration failed, but continuing with build..."
-    echo "The app will use SQLite as fallback database"
-fi
+python manage.py migrate --noinput
 
 echo "🎉 Build completed successfully!"

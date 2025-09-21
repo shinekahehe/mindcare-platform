@@ -16,12 +16,6 @@ except ImportError:
     SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '')
     SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 
-# Log configuration status
-if SUPABASE_URL and SUPABASE_ANON_KEY:
-    logger.info("Supabase configured successfully")
-else:
-    logger.info("Supabase not configured - using local database")
-
 def get_supabase_client() -> Client:
     """Create and return a Supabase client instance"""
     return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)

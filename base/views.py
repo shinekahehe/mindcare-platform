@@ -17,14 +17,12 @@ try:
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
-    logger.info("Supabase not configured - using local database")
 
 try:
     from gemini_config import generate_mental_health_response, is_mental_health_related, get_off_topic_response, GEMINI_AVAILABLE
     GEMINI_AVAILABLE = GEMINI_AVAILABLE
 except ImportError:
     GEMINI_AVAILABLE = False
-    logger.info("Gemini API not configured - using fallback responses")
 
 # Create your views here.
 def home(request):
@@ -613,6 +611,40 @@ def manual_env_setup(request):
         'message': 'Manually set GEMINI_API_KEY for testing',
         'gemini_key_set': bool(os.getenv('GEMINI_API_KEY')),
         'gemini_key_value': os.getenv('GEMINI_API_KEY', '')[:10] + "..." + os.getenv('GEMINI_API_KEY', '')[-4:] if os.getenv('GEMINI_API_KEY') else 'NOT SET',
+    }, status=200)
+
+def healthz(request):
+    """Health check endpoint - no auth required"""
+    from django.db import connection
+    
+    # Check environment variables
+    env_ok = bool(settings.SUPABASE_URL and settings.GEMINI_API_KEY)
+    
+    # Check database connectivity
+    db_ok = False
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            db_ok = True
+    except Exception:
+        db_ok = False
+    
+    return JsonResponse({
+        'env_ok': env_ok,
+        'db_ok': db_ok
+    }, status=200)
+
+def env_debug(request):
+    """Environment debug endpoint - only available in DEBUG mode"""
+    if not settings.DEBUG:
+        return JsonResponse({'error': 'Not available in production'}, status=403)
+    
+    return JsonResponse({
+        'has_supabase_url': bool(settings.SUPABASE_URL),
+        'has_supabase_anon': bool(settings.SUPABASE_ANON_KEY),
+        'has_gemini': bool(settings.GEMINI_API_KEY),
+        'has_database_url': bool(settings.DATABASES['default'].get('NAME') != 'db.sqlite3')
     }, status=200)
 
 @require_http_methods(["POST"])

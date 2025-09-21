@@ -4,7 +4,7 @@ import os
 import sys
 
 # Load environment variables only in local development
-if not (os.getenv("RENDER") or os.getenv("DYNO") or os.getenv("RAILWAY_ENVIRONMENT")):
+if os.getenv("RENDER") is None:
     try:
         from dotenv import load_dotenv
         load_dotenv()

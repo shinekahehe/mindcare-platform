@@ -18,6 +18,9 @@ urlpatterns = [
     
     # Health check endpoint
     path('healthz/', views.healthz, name='healthz'),
+    path('env-debug/', views.env_debug, name='env_debug'),
+    
+    # Legacy debug endpoints
     path('test-env/', views.test_env_vars, name='test_env_vars'),
     path('debug-env/', views.debug_env_vars, name='debug_env_vars'),
     path('simple-env/', views.simple_env_test, name='simple_env_test'),

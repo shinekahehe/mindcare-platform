@@ -10,7 +10,7 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 import os
 
 # Load environment variables only in local development
-if not (os.getenv("RENDER") or os.getenv("DYNO") or os.getenv("RAILWAY_ENVIRONMENT")):
+if os.getenv("RENDER") is None:
     try:
         from dotenv import load_dotenv
         load_dotenv()
