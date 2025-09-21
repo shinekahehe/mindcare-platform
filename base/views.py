@@ -546,6 +546,37 @@ def test_env_vars(request):
     
     return JsonResponse(env_status, status=200)
 
+def debug_env_vars(request):
+    """Debug endpoint to check environment variables in detail"""
+    import os
+    
+    debug_info = {
+        'environment': 'PRODUCTION' if os.getenv("RENDER") else 'LOCAL',
+        'render_detected': bool(os.getenv("RENDER")),
+        'raw_env_vars': {
+            'GEMINI_API_KEY': 'SET' if os.getenv('GEMINI_API_KEY') else 'NOT SET',
+            'SUPABASE_URL': 'SET' if os.getenv('SUPABASE_URL') else 'NOT SET',
+            'DATABASE_URL': 'SET' if os.getenv('DATABASE_URL') else 'NOT SET',
+        },
+        'django_settings': {
+            'GEMINI_API_KEY': 'SET' if settings.GEMINI_API_KEY else 'NOT SET',
+            'SUPABASE_URL': 'SET' if settings.SUPABASE_URL else 'NOT SET',
+        },
+        'gemini_config_status': {
+            'GEMINI_AVAILABLE': GEMINI_AVAILABLE,
+            'import_success': True
+        }
+    }
+    
+    # Try to import gemini_config to see what happens
+    try:
+        from gemini_config import GEMINI_AVAILABLE as GEMINI_AVAILABLE_IMPORT
+        debug_info['gemini_config_status']['GEMINI_AVAILABLE_IMPORT'] = GEMINI_AVAILABLE_IMPORT
+    except Exception as e:
+        debug_info['gemini_config_status']['import_error'] = str(e)
+    
+    return JsonResponse(debug_info, status=200)
+
 @require_http_methods(["POST"])
 def gemini_chat_api(request):
     """Handle AI chat requests using Gemini API"""

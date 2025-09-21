@@ -40,7 +40,12 @@ def get_required_env(key, description=""):
 def get_optional_env(key, default=None):
     """Get optional environment variable with whitespace trimming"""
     value = os.getenv(key, default)
-    return value.strip() if value else default
+    if value:
+        value = value.strip()
+        # Log when we find environment variables (for debugging)
+        if key in ['GEMINI_API_KEY', 'SUPABASE_URL', 'DATABASE_URL']:
+            logger.info(f"Found {key}: {'SET' if value else 'NOT SET'}")
+    return value if value else default
 
 def validate_supabase_url(url):
     """Validate and parse Supabase URL"""
