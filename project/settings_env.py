@@ -142,6 +142,12 @@ def get_environment_config():
     logger.info(f"  Supabase configured: {bool(config['SUPABASE_URL'])}")
     logger.info(f"  Gemini API configured: {bool(config['GEMINI_API_KEY'])}")
     
+    # Remove old warning messages by ensuring proper configuration
+    if not config['SUPABASE_URL']:
+        logger.info("Supabase not configured - using local database")
+    if not config['GEMINI_API_KEY']:
+        logger.info("Gemini API not configured - using fallback responses")
+    
     return config
 
 # Load configuration

@@ -17,14 +17,14 @@ try:
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
-    print("Warning: Supabase not configured. Please set up your .env file with Supabase credentials.")
+    logger.info("Supabase not configured - using local database")
 
 try:
     from gemini_config import generate_mental_health_response, is_mental_health_related, get_off_topic_response, GEMINI_AVAILABLE
     GEMINI_AVAILABLE = GEMINI_AVAILABLE
 except ImportError:
     GEMINI_AVAILABLE = False
-    print("Warning: Gemini API not configured. Please set up your .env file with GEMINI_API_KEY.")
+    logger.info("Gemini API not configured - using fallback responses")
 
 # Create your views here.
 def home(request):
