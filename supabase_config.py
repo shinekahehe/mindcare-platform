@@ -20,7 +20,7 @@ except ImportError:
 if SUPABASE_URL and SUPABASE_ANON_KEY:
     logger.info("Supabase configured successfully")
 else:
-    logger.warning("Supabase not configured - SUPABASE_URL or SUPABASE_ANON_KEY missing")
+    logger.info("Supabase not configured - using local database")
 
 def get_supabase_client() -> Client:
     """Create and return a Supabase client instance"""

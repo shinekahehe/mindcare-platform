@@ -19,7 +19,7 @@ if GEMINI_API_KEY:
     logger.info("Gemini API configured successfully")
 else:
     GEMINI_AVAILABLE = False
-    logger.warning("GEMINI_API_KEY not configured - AI chatbot will use fallback responses")
+    logger.info("Gemini API not configured - AI chatbot will use fallback responses")
 
 # Mental Health Focused System Prompt
 MENTAL_HEALTH_SYSTEM_PROMPT = """

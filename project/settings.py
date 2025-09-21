@@ -91,22 +91,28 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration - Use SQLite locally, PostgreSQL on Render
-if ENV_CONFIG['DATABASE_URL'] and dj_database_url and os.getenv("RENDER"):
-    # Only use PostgreSQL on Render
-    DATABASES = {
-        'default': dj_database_url.parse(ENV_CONFIG['DATABASE_URL'])
+# Database configuration with fallback
+def get_database_config():
+    """Get database configuration with fallback to SQLite"""
+    if ENV_CONFIG['DATABASE_URL'] and dj_database_url and os.getenv("RENDER"):
+        try:
+            # Test if we can parse the database URL
+            db_config = dj_database_url.parse(ENV_CONFIG['DATABASE_URL'])
+            logger.info("Using PostgreSQL database from DATABASE_URL (Render)")
+            return db_config
+        except Exception as e:
+            logger.error(f"Failed to parse DATABASE_URL: {e}")
+            logger.info("Falling back to SQLite database")
+    
+    # Use SQLite as fallback
+    return {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-    logger.info("Using PostgreSQL database from DATABASE_URL (Render)")
-else:
-    # Use SQLite for local development
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-    logger.info("Using SQLite database (local development)")
+
+DATABASES = {
+    'default': get_database_config()
+}
 
 
 # Password validation
