@@ -851,12 +851,16 @@
             // Get custom reason
             const customReason = document.getElementById('customReason').value.trim();
 
+            // Get user data from localStorage
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+
             // Prepare mood data
             const moodData = {
                 mood: currentMood,
                 reasons: selectedReasons,
                 customReason: customReason,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                user_data: userData
             };
 
             try {
@@ -1109,9 +1113,79 @@
             }
         }
 
+        // Load mood history from database
+        async function loadMoodHistoryFromDatabase() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                if (!userData.email) {
+                    console.log('No user data found, skipping database load');
+                    return;
+                }
+
+                const response = await fetch(`/api/mood-history/?email=${encodeURIComponent(userData.email)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.mood_history.length > 0) {
+                    console.log(`Loaded ${result.total_entries} mood entries from database`);
+                    
+                    // Store in localStorage for offline access
+                    localStorage.setItem('moodHistory', JSON.stringify(result.mood_history));
+                    
+                    // Update the mood history display
+                    updateMoodHistoryDisplay(result.mood_history);
+                } else {
+                    console.log('No mood history found in database');
+                }
+            } catch (error) {
+                console.error('Error loading mood history from database:', error);
+            }
+        }
+
+        // Update mood history display
+        function updateMoodHistoryDisplay(moodHistory) {
+            const historyContainer = document.getElementById('moodHistory');
+            if (!historyContainer || moodHistory.length === 0) return;
+
+            historyContainer.innerHTML = '';
+            
+            moodHistory.slice(0, 5).forEach(entry => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-mood">
+                        <span class="mood-emoji">${getMoodEmoji(entry.mood_value)}</span>
+                        <span class="mood-label">${entry.mood_label}</span>
+                    </div>
+                    <div class="history-details">
+                        <div class="history-reason">${entry.reason || 'No reason provided'}</div>
+                        <div class="history-date">${new Date(entry.created_at).toLocaleDateString()}</div>
+                    </div>
+                `;
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        // Get mood emoji based on mood value
+        function getMoodEmoji(moodValue) {
+            const emojis = {
+                1: '😢', 2: '😔', 3: '😕', 4: '😐', 5: '🙂', 6: '😊', 7: '😄'
+            };
+            return emojis[moodValue] || '😐';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Check user role and show/hide admin features
             checkUserRole();
+            
+            // Load mood history from database
+            loadMoodHistoryFromDatabase();
             
             const navLinks = document.querySelectorAll('.nav-link');
             navLinks.forEach(link => {

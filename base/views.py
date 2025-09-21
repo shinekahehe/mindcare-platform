@@ -76,22 +76,56 @@ def save_mood_api(request):
                 'error': 'Mood value and label are required'
             }, status=400)
         
-        # For now, we'll just return success
-        # In a real implementation, you would save to database here
-        # Example:
-        # mood_entry = MoodEntry.objects.create(
-        #     user=request.user,
-        #     mood_value=mood_value,
-        #     mood_label=mood_label,
-        #     reasons=json.dumps(reasons),
-        #     custom_reason=custom_reason,
-        #     timestamp=timestamp
-        # )
+        # Get user from request (if authenticated) or create anonymous entry
+        user = None
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            # For anonymous users, try to get user from localStorage data
+            user_data = data.get('user_data')
+            if user_data and user_data.get('email'):
+                try:
+                    user = User.objects.get(email=user_data['email'])
+                except User.DoesNotExist:
+                    # Create a temporary user for anonymous mood tracking
+                    user = User.objects.create_user(
+                        username=f"anonymous_{user_data['email']}",
+                        email=user_data['email'],
+                        first_name=user_data.get('username', 'Anonymous'),
+                        is_active=False  # Mark as inactive since it's anonymous
+                    )
+        
+        if not user:
+            return JsonResponse({
+                'success': False,
+                'error': 'User authentication required'
+            }, status=401)
+        
+        # Combine reasons and custom reason
+        reason_text = ''
+        if reasons:
+            reason_text += ', '.join(reasons)
+        if custom_reason:
+            if reason_text:
+                reason_text += f' | Custom: {custom_reason}'
+            else:
+                reason_text = f'Custom: {custom_reason}'
+        
+        # Save mood entry to database
+        from .models import MoodEntry
+        mood_entry = MoodEntry.objects.create(
+            user=user,
+            mood_value=mood_value,
+            mood_label=mood_label,
+            reason=reason_text,
+            notes=f"Timestamp: {timestamp}" if timestamp else None
+        )
         
         return JsonResponse({
             'success': True,
             'message': 'Mood saved successfully',
-            'mood_id': 'temp_id'  # In real implementation, return mood_entry.id
+            'mood_id': mood_entry.id,
+            'created_at': mood_entry.created_at.isoformat()
         })
         
     except json.JSONDecodeError:
@@ -99,6 +133,62 @@ def save_mood_api(request):
             'success': False,
             'error': 'Invalid JSON data'
         }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_mood_history_api(request):
+    """Get mood history for the current user"""
+    try:
+        # Get user from request (if authenticated)
+        user = None
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            # For anonymous users, try to get user from query parameters
+            email = request.GET.get('email')
+            if email:
+                try:
+                    user = User.objects.get(email=email)
+                except User.DoesNotExist:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'User not found'
+                    }, status=404)
+        
+        if not user:
+            return JsonResponse({
+                'success': False,
+                'error': 'User authentication required'
+            }, status=401)
+        
+        # Get mood entries for the user
+        from .models import MoodEntry
+        mood_entries = MoodEntry.objects.filter(user=user).order_by('-created_at')
+        
+        # Convert to JSON format
+        mood_history = []
+        for entry in mood_entries:
+            mood_history.append({
+                'id': entry.id,
+                'mood_value': entry.mood_value,
+                'mood_label': entry.mood_label,
+                'reason': entry.reason,
+                'notes': entry.notes,
+                'created_at': entry.created_at.isoformat(),
+                'updated_at': entry.updated_at.isoformat()
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'mood_history': mood_history,
+            'total_entries': len(mood_history)
+        })
+        
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -461,13 +551,16 @@ def database_viewer(request):
                 
                 from django.contrib.auth.models import User
                 
+                from .models import MoodEntry
                 context = {
                     'users': User.objects.all(),
                     'profiles': UserProfile.objects.all(),
                     'institutions': Institution.objects.all(),
+                    'mood_entries': MoodEntry.objects.all()[:20],  # Show last 20 entries
                     'total_users': User.objects.count(),
                     'total_profiles': UserProfile.objects.count(),
                     'total_institutions': Institution.objects.count(),
+                    'total_mood_entries': MoodEntry.objects.count(),
                     'admin_users': User.objects.filter(is_superuser=True).count(),
                 }
                 return render(request, 'database_viewer.html', context)

@@ -17,6 +17,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/save-mood/', views.save_mood_api, name='save_mood_api'),
+    path('api/mood-history/', views.get_mood_history_api, name='get_mood_history_api'),
     path('api/signup/', views.signup_api, name='signup_api'),
     path('api/login/', views.login_api, name='login_api'),
     path('api/logout/', views.logout_api, name='logout_api'),
