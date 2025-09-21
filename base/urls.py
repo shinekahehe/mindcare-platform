@@ -20,6 +20,7 @@ urlpatterns = [
     path('healthz/', views.healthz, name='healthz'),
     path('test-env/', views.test_env_vars, name='test_env_vars'),
     path('debug-env/', views.debug_env_vars, name='debug_env_vars'),
+    path('simple-env/', views.simple_env_test, name='simple_env_test'),
     
     # API endpoints
     path('api/save-mood/', views.save_mood_api, name='save_mood_api'),

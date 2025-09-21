@@ -577,6 +577,29 @@ def debug_env_vars(request):
     
     return JsonResponse(debug_info, status=200)
 
+def simple_env_test(request):
+    """Very simple environment test - just show raw env vars"""
+    import os
+    
+    # Get all environment variables that start with our prefixes
+    relevant_vars = {}
+    for key, value in os.environ.items():
+        if any(key.startswith(prefix) for prefix in ['GEMINI', 'SUPABASE', 'DATABASE', 'DEBUG', 'ALLOWED']):
+            if 'KEY' in key or 'URL' in key:
+                # Mask sensitive values
+                masked = value[:10] + "..." + value[-4:] if len(value) > 14 else "***"
+                relevant_vars[key] = masked
+            else:
+                relevant_vars[key] = value
+    
+    return JsonResponse({
+        'message': 'Simple environment test',
+        'render_detected': bool(os.getenv('RENDER')),
+        'environment_variables': relevant_vars,
+        'gemini_key_exists': bool(os.getenv('GEMINI_API_KEY')),
+        'gemini_key_length': len(os.getenv('GEMINI_API_KEY', '')),
+    }, status=200)
+
 @require_http_methods(["POST"])
 def gemini_chat_api(request):
     """Handle AI chat requests using Gemini API"""

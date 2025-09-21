@@ -9,9 +9,16 @@ logger = logging.getLogger(__name__)
 try:
     from django.conf import settings
     GEMINI_API_KEY = settings.GEMINI_API_KEY
+    logger.info(f"Loaded GEMINI_API_KEY from Django settings: {'SET' if GEMINI_API_KEY else 'NOT SET'}")
 except ImportError:
     # Fallback for when Django settings are not available
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+    logger.info(f"Loaded GEMINI_API_KEY from environment: {'SET' if GEMINI_API_KEY else 'NOT SET'}")
+except Exception as e:
+    # Additional fallback
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+    logger.warning(f"Error loading GEMINI_API_KEY from Django settings: {e}")
+    logger.info(f"Using environment fallback: {'SET' if GEMINI_API_KEY else 'NOT SET'}")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
