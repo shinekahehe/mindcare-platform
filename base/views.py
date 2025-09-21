@@ -446,3 +446,36 @@ def analytics_dashboard(request):
             return redirect('login')
     else:
         return redirect('login')
+
+def database_viewer(request):
+    """Database viewer - admin only"""
+    if request.user.is_authenticated:
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            # Check if user is admin
+            if (user_profile.role == 'admin' or 
+                user_profile.user.email == 'admin@test.com' or
+                user_profile.user.email == 'admin@demo.com' or
+                user_profile.user.username == 'admin@test.com' or
+                request.user.is_superuser):
+                
+                from django.contrib.auth.models import User
+                
+                context = {
+                    'users': User.objects.all(),
+                    'profiles': UserProfile.objects.all(),
+                    'institutions': Institution.objects.all(),
+                    'total_users': User.objects.count(),
+                    'total_profiles': UserProfile.objects.count(),
+                    'total_institutions': Institution.objects.count(),
+                    'admin_users': User.objects.filter(is_superuser=True).count(),
+                }
+                return render(request, 'database_viewer.html', context)
+            else:
+                messages.error(request, 'Access denied. Admin privileges required.')
+                return redirect('mindcare_home')
+        except UserProfile.DoesNotExist:
+            messages.error(request, 'User profile not found')
+            return redirect('login')
+    else:
+        return redirect('login')
