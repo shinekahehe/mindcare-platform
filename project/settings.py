@@ -12,34 +12,34 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+import logging
 
-# Load environment variables
-load_dotenv()
+# Import environment configuration
+from .settings_env import ENV_CONFIG
+
+# Import database URL parser
+try:
+    import dj_database_url  # type: ignore
+except ImportError:
+    dj_database_url = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-e8%q@h1rxa8tp7r)m91u(7it5wwhe3(e-8uz00!*-d1st7drl%")
+SECRET_KEY = ENV_CONFIG['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = ENV_CONFIG['DEBUG']
 
-ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1', 
-    'testserver',
-    '.railway.app',
-    '.vercel.app',
-    '.herokuapp.com',
-    '.render.com',
-    'mindcare-platform.onrender.com'
-]
+ALLOWED_HOSTS = ENV_CONFIG['ALLOWED_HOSTS']
 
 
 # Application definition
@@ -91,21 +91,22 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration
-# Temporarily use SQLite - Supabase connection needs troubleshooting
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Database configuration - Use SQLite locally, PostgreSQL on Render
+if ENV_CONFIG['DATABASE_URL'] and dj_database_url and os.getenv("RENDER"):
+    # Only use PostgreSQL on Render
+    DATABASES = {
+        'default': dj_database_url.parse(ENV_CONFIG['DATABASE_URL'])
     }
-}
-
-# TODO: Fix Supabase connection and uncomment this
-# if os.getenv('DATABASE_URL'):
-#     import dj_database_url
-#     DATABASES = {
-#         'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
-#     }
+    logger.info("Using PostgreSQL database from DATABASE_URL (Render)")
+else:
+    # Use SQLite for local development
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+    logger.info("Using SQLite database (local development)")
 
 
 # Password validation
@@ -151,6 +152,10 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Supabase Configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL', '')
-SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '')
-SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+SUPABASE_URL = ENV_CONFIG['SUPABASE_URL']
+SUPABASE_ANON_KEY = ENV_CONFIG['SUPABASE_ANON_KEY']
+SUPABASE_SERVICE_ROLE_KEY = ENV_CONFIG['SUPABASE_SERVICE_ROLE_KEY']
+SUPABASE_PROJECT_REF = ENV_CONFIG.get('SUPABASE_PROJECT_REF')
+
+# Gemini API Configuration
+GEMINI_API_KEY = ENV_CONFIG['GEMINI_API_KEY']

@@ -1,20 +1,25 @@
 import os
 import google.generativeai as genai
-from dotenv import load_dotenv
 from datetime import datetime
+import logging
 
-# Load environment variables
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-# Configure Gemini API
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+# Configure Gemini API using centralized settings
+try:
+    from django.conf import settings
+    GEMINI_API_KEY = settings.GEMINI_API_KEY
+except ImportError:
+    # Fallback for when Django settings are not available
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     GEMINI_AVAILABLE = True
+    logger.info("Gemini API configured successfully")
 else:
     GEMINI_AVAILABLE = False
-    print("Warning: Gemini API key not found. Please set GEMINI_API_KEY in your .env file.")
+    logger.warning("GEMINI_API_KEY not configured - AI chatbot will use fallback responses")
 
 # Mental Health Focused System Prompt
 MENTAL_HEALTH_SYSTEM_PROMPT = """

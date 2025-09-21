@@ -16,6 +16,10 @@ urlpatterns = [
     path('peer-support/', views.peer_support, name='peer_support'),
     path('resources/', views.resources, name='resources'),
     
+    # Health check endpoint
+    path('healthz/', views.healthz, name='healthz'),
+    path('test-env/', views.test_env_vars, name='test_env_vars'),
+    
     # API endpoints
     path('api/save-mood/', views.save_mood_api, name='save_mood_api'),
     path('api/mood-history/', views.get_mood_history_api, name='get_mood_history_api'),

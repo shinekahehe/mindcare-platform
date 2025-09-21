@@ -3,6 +3,14 @@
 import os
 import sys
 
+# Load environment variables only in local development
+if not (os.getenv("RENDER") or os.getenv("DYNO") or os.getenv("RAILWAY_ENVIRONMENT")):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass  # python-dotenv not installed, continue without .env
+
 
 def main():
     """Run administrative tasks."""

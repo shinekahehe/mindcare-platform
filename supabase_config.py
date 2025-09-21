@@ -1,14 +1,26 @@
 import os
 from supabase import create_client, Client
-from dotenv import load_dotenv
+import logging
 
-# Load environment variables from .env
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-# Supabase configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL', 'your_supabase_project_url')
-SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', 'your_supabase_anon_key')
-SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', 'your_supabase_service_role_key')
+# Supabase configuration using centralized settings
+try:
+    from django.conf import settings
+    SUPABASE_URL = settings.SUPABASE_URL
+    SUPABASE_ANON_KEY = settings.SUPABASE_ANON_KEY
+    SUPABASE_SERVICE_ROLE_KEY = settings.SUPABASE_SERVICE_ROLE_KEY
+except ImportError:
+    # Fallback for when Django settings are not available
+    SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+    SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '')
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+
+# Log configuration status
+if SUPABASE_URL and SUPABASE_ANON_KEY:
+    logger.info("Supabase configured successfully")
+else:
+    logger.warning("Supabase not configured - SUPABASE_URL or SUPABASE_ANON_KEY missing")
 
 def get_supabase_client() -> Client:
     """Create and return a Supabase client instance"""

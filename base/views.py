@@ -5,8 +5,13 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
+from django.db import connection
+from django.conf import settings
 import json
+import logging
 from .models import Institution, UserProfile
+
+logger = logging.getLogger(__name__)
 try:
     from supabase_config import get_supabase_client, get_supabase_admin_client
     SUPABASE_AVAILABLE = True
@@ -437,6 +442,110 @@ def logout_api(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
+def healthz(request):
+    """Health check endpoint for environment and database validation"""
+    health_status = {
+        'status': 'ok',
+        'env_ok': True,
+        'db_ok': True,
+        'supabase_ok': True,
+        'gemini_ok': True,
+        'details': {}
+    }
+    
+    # Check environment variables
+    try:
+        env_details = {
+            'debug': settings.DEBUG,
+            'database_configured': bool(settings.DATABASES['default'].get('NAME') != 'db.sqlite3' or 
+                                      settings.DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql'),
+            'supabase_configured': bool(settings.SUPABASE_URL),
+            'gemini_configured': bool(settings.GEMINI_API_KEY),
+        }
+        health_status['details']['environment'] = env_details
+        
+        if not settings.SUPABASE_URL:
+            health_status['supabase_ok'] = False
+            health_status['details']['supabase_error'] = 'SUPABASE_URL not configured'
+            
+        if not settings.GEMINI_API_KEY:
+            health_status['gemini_ok'] = False
+            health_status['details']['gemini_error'] = 'GEMINI_API_KEY not configured'
+            
+    except Exception as e:
+        health_status['env_ok'] = False
+        health_status['details']['env_error'] = str(e)
+        logger.error(f"Environment check failed: {e}")
+    
+    # Check database connectivity
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            health_status['details']['database'] = {
+                'engine': settings.DATABASES['default']['ENGINE'],
+                'connected': True
+            }
+    except Exception as e:
+        health_status['db_ok'] = False
+        health_status['details']['database_error'] = str(e)
+        logger.error(f"Database check failed: {e}")
+    
+    # Check Supabase connectivity (if configured)
+    if settings.SUPABASE_URL and SUPABASE_AVAILABLE:
+        try:
+            supabase = get_supabase_client()
+            # Simple test query
+            result = supabase.table('base_userprofile').select('id').limit(1).execute()
+            health_status['details']['supabase'] = {
+                'url_configured': True,
+                'connection_test': 'passed'
+            }
+        except Exception as e:
+            health_status['supabase_ok'] = False
+            health_status['details']['supabase_error'] = str(e)
+            logger.error(f"Supabase check failed: {e}")
+    
+    # Overall status
+    if not (health_status['env_ok'] and health_status['db_ok']):
+        health_status['status'] = 'error'
+    
+    return JsonResponse(health_status, status=200 if health_status['status'] == 'ok' else 500)
+
+def test_env_vars(request):
+    """Test endpoint to check environment variables on Render"""
+    import os
+    
+    # Check if we're in production
+    is_production = bool(os.getenv("RENDER") or os.getenv("DYNO") or os.getenv("RAILWAY_ENVIRONMENT"))
+    
+    env_status = {
+        'environment': 'PRODUCTION' if is_production else 'LOCAL DEVELOPMENT',
+        'render_detected': bool(os.getenv("RENDER")),
+        'heroku_detected': bool(os.getenv("DYNO")),
+        'railway_detected': bool(os.getenv("RAILWAY_ENVIRONMENT")),
+        'env_vars': {
+            'DJANGO_SECRET_KEY': 'SET' if os.getenv('DJANGO_SECRET_KEY') else 'NOT SET',
+            'SECRET_KEY': 'SET' if os.getenv('SECRET_KEY') else 'NOT SET',
+            'DEBUG': os.getenv('DEBUG', 'NOT SET'),
+            'ALLOWED_HOSTS': os.getenv('ALLOWED_HOSTS', 'NOT SET'),
+            'DATABASE_URL': 'SET' if os.getenv('DATABASE_URL') else 'NOT SET',
+            'SUPABASE_URL': 'SET' if os.getenv('SUPABASE_URL') else 'NOT SET',
+            'SUPABASE_ANON_KEY': 'SET' if os.getenv('SUPABASE_ANON_KEY') else 'NOT SET',
+            'GEMINI_API_KEY': 'SET' if os.getenv('GEMINI_API_KEY') else 'NOT SET',
+        },
+        'django_settings': {
+            'SECRET_KEY': 'SET' if settings.SECRET_KEY else 'NOT SET',
+            'DEBUG': settings.DEBUG,
+            'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+            'DATABASE_ENGINE': settings.DATABASES['default']['ENGINE'],
+            'SUPABASE_URL': 'SET' if settings.SUPABASE_URL else 'NOT SET',
+            'GEMINI_API_KEY': 'SET' if settings.GEMINI_API_KEY else 'NOT SET',
+        }
+    }
+    
+    return JsonResponse(env_status, status=200)
+
 @require_http_methods(["POST"])
 def gemini_chat_api(request):
     """Handle AI chat requests using Gemini API"""
