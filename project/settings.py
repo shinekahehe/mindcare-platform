@@ -91,19 +91,20 @@ WSGI_APPLICATION = "project.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database configuration
-# Use Supabase PostgreSQL if DATABASE_URL is set, otherwise use SQLite
-if os.getenv('DATABASE_URL'):
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+# Temporarily use SQLite for testing - will switch to Supabase later
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
+
+# TODO: Uncomment this when DATABASE_URL is properly configured
+# if os.getenv('DATABASE_URL'):
+#     import dj_database_url
+#     DATABASES = {
+#         'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+#     }
 
 
 # Password validation

@@ -16,7 +16,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 django.setup()
 
 from django.contrib.auth.models import User
-from base.models import UserProfile, Institution
+from base.models import UserProfile, Institution, MoodEntry
 
 def view_database():
     """View all database contents"""
@@ -57,6 +57,7 @@ def view_database():
     print(f"Total Users: {User.objects.count()}")
     print(f"Total User Profiles: {UserProfile.objects.count()}")
     print(f"Total Institutions: {Institution.objects.count()}")
+    print(f"Total Mood Entries: {MoodEntry.objects.count()}")
     print(f"Admin Users: {User.objects.filter(is_superuser=True).count()}")
     print(f"Staff Users: {User.objects.filter(is_staff=True).count()}")
 
@@ -78,6 +79,19 @@ def view_specific_data():
         print(f"\n👤 USER PROFILES BY ROLE")
         for profile in profiles:
             print(f"   {profile.user.username}: {profile.role} at {profile.institution.name}")
+        
+        print("\n😊 MOOD ENTRIES")
+        print("-" * 30)
+        mood_entries = MoodEntry.objects.all().order_by('-created_at')
+        if mood_entries:
+            for entry in mood_entries:
+                print(f"ID: {entry.id} | User: {entry.user.username}")
+                print(f"   Mood: {entry.mood_label} (Value: {entry.mood_value})")
+                print(f"   Reason: {entry.reason}")
+                print(f"   Created: {entry.created_at.strftime('%Y-%m-%d %H:%M')}")
+                print()
+        else:
+            print("   No mood entries found")
 
 if __name__ == "__main__":
     try:
