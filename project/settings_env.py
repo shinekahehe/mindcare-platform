@@ -71,8 +71,9 @@ def get_environment_config():
     # Boolean settings
     config['DEBUG'] = get_bool('DEBUG', False)
     
-    # ALLOWED_HOSTS configuration
-    allowed_hosts = get_env('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver,mindcare-platform-1.onrender.com,mindcare-platform.onrender.com')
+    # ALLOWED_HOSTS configuration - always include Render domains
+    default_hosts = 'localhost,127.0.0.1,testserver,mindcare-platform-1.onrender.com,mindcare-platform.onrender.com'
+    allowed_hosts = get_env('ALLOWED_HOSTS', default_hosts)
     config['ALLOWED_HOSTS'] = [host.strip() for host in allowed_hosts.split(',') if host.strip()]
     
     # Validate Supabase URL
@@ -104,6 +105,9 @@ def get_environment_config():
     
     if missing_vars:
         logger.warning(f"missing_env={missing_vars}")
+    
+    # Debug logging for ALLOWED_HOSTS
+    logger.info(f"ALLOWED_HOSTS configured: {config['ALLOWED_HOSTS']}")
     
     return config
 

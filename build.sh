@@ -7,6 +7,10 @@ echo "🚀 Starting MindCare Platform build..."
 echo "📦 Installing Python dependencies..."
 pip install -r requirements.txt
 
+# Create staticfiles directory if it doesn't exist
+echo "📁 Creating staticfiles directory..."
+mkdir -p staticfiles
+
 # Collect static files
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
