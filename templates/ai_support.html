@@ -416,6 +416,30 @@
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
 
+        .clear-button {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+            margin-right: 10px;
+        }
+
+        .clear-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .clear-button:active {
+            transform: translateY(0);
+        }
+
         .send-button {
             width: 50px;
             height: 50px;
@@ -729,6 +753,9 @@
             
             <div class="chat-input-container">
                 <input type="text" class="chat-input" id="chatInput" placeholder="Share what's on your mind...I'm here to listen and support you." maxlength="500">
+                <button class="clear-button" onclick="clearChat()" id="clearButton" title="Clear conversation">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40NzcgMiAyIDYuNDc3IDIgMTJTNi40NzcgMjIgMTIgMjJTMjIgMTcuNTIzIDIyIDEyUzE3LjUyMyAyIDEyIDJaTTEwIDEzSDE0VjE3SDEwVjEzWk0xMCA3SDE0VjExSDEwVjdaIiBmaWxsPSJjdXJyZW50Q29sb3IiLz4KPC9zdmc+Cg==" alt="Clear Chat" class="clear-icon">
+                </button>
                 <button class="send-button" onclick="sendMessage()" id="sendButton">
                     <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgMjFMMjMgMTJMMiAzVjEwTDE3IDEyTDIgMTRWMjFaIiBmaWxsPSJjdXJyZW50Q29sb3IiLz4KPC9zdmc+Cg==" alt="Send" class="send-icon">
                 </button>
@@ -851,6 +878,7 @@
             
             try {
                 // Call Gemini API
+                console.log('Sending message with conversation history:', chatHistory.length, 'messages');
                 const response = await fetch('/api/gemini-chat/', {
                     method: 'POST',
                     headers: {
@@ -1109,19 +1137,47 @@
             const content = UI_CONTENT[currentLanguage];
             const messagesContainer = document.getElementById('chatMessages');
             
-            messagesContainer.innerHTML = `
-                <div class="welcome-message">
-                    <h3 class="welcome-title">${content.welcomeTitle}</h3>
-                    <p class="welcome-text">${content.welcomeText}</p>
-                    <div class="suggested-prompts">
-                        ${content.suggestions.map(suggestion => 
-                            `<div class="prompt-suggestion" onclick="sendSuggestedPrompt('${suggestion}')">${suggestion}</div>`
-                        ).join('')}
+            // Only reset chat if there's no conversation history
+            if (chatHistory.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="welcome-message">
+                        <h3 class="welcome-title">${content.welcomeTitle}</h3>
+                        <p class="welcome-text">${content.welcomeText}</p>
+                        <div class="suggested-prompts">
+                            ${content.suggestions.map(suggestion => 
+                                `<div class="prompt-suggestion" onclick="sendSuggestedPrompt('${suggestion}')">${suggestion}</div>`
+                            ).join('')}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // If there's conversation history, just update the welcome message if it exists
+                const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.innerHTML = `
+                        <h3 class="welcome-title">${content.welcomeTitle}</h3>
+                        <p class="welcome-text">${content.welcomeText}</p>
+                        <div class="suggested-prompts">
+                            ${content.suggestions.map(suggestion => 
+                                `<div class="prompt-suggestion" onclick="sendSuggestedPrompt('${suggestion}')">${suggestion}</div>`
+                            ).join('')}
+                        </div>
+                    `;
+                }
+            }
             
+            // Don't clear chat history - preserve conversation context
+        }
+
+        function clearChat() {
+            // Clear the conversation history
             chatHistory = [];
+            
+            // Reset the chat display
+            resetChatWithLanguage();
+            
+            // Show notification
+            showNotification('Chat cleared. Starting fresh conversation.', 'info');
         }
 
         function detectLanguage(text) {

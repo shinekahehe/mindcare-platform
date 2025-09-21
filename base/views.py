@@ -452,6 +452,9 @@ def gemini_chat_api(request):
         user_message = data.get('message', '').strip()
         conversation_history = data.get('conversation_history', [])
         
+        # Debug: Log conversation history length
+        print(f"Received message: '{user_message}' with {len(conversation_history)} previous messages")
+        
         if not user_message:
             return JsonResponse({
                 'success': False,

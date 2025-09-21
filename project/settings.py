@@ -91,7 +91,7 @@ WSGI_APPLICATION = "project.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database configuration
-# Temporarily use SQLite for testing - will switch to Supabase later
+# Temporarily use SQLite - Supabase connection needs troubleshooting
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -99,7 +99,7 @@ DATABASES = {
     }
 }
 
-# TODO: Uncomment this when DATABASE_URL is properly configured
+# TODO: Fix Supabase connection and uncomment this
 # if os.getenv('DATABASE_URL'):
 #     import dj_database_url
 #     DATABASES = {
