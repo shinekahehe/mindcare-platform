@@ -95,7 +95,11 @@ WSGI_APPLICATION = "project.wsgi.application"
 if ENV_CONFIG['DATABASE_URL'] and dj_database_url:
     try:
         DATABASES = {
-            'default': dj_database_url.config(default=ENV_CONFIG['DATABASE_URL'])
+            'default': dj_database_url.config(
+                default=ENV_CONFIG['DATABASE_URL'],
+                conn_max_age=600,
+                ssl_require=True
+            )
         }
         logger.info("Using PostgreSQL from DATABASE_URL (Render)")
     except Exception as e:
