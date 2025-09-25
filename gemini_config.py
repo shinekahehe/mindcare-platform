@@ -239,44 +239,37 @@ def generate_mental_health_response(user_message, conversation_history=None):
         }
     
     try:
-        # Build conversation context
-        conversation_parts = [MENTAL_HEALTH_SYSTEM_PROMPT]
-        
-        # Add conversation history if provided
+        # Build conversation context as a list of message objects
+        # The system prompt must be handled separately or integrated into the first message
+        # Let's assume a simpler approach for now to debug the context loss
+
+        # Start with the system prompt
+        full_conversation = [
+            {'role': 'user', 'parts': [MENTAL_HEALTH_SYSTEM_PROMPT]}
+        ]
+
         if conversation_history:
-            for msg in conversation_history[-6:]:  # Keep last 6 messages for context
-                if msg.get('sender') == 'user':
-                    conversation_parts.append(f"User: {msg.get('content', '')}")
-                elif msg.get('sender') == 'ai':
-                    conversation_parts.append(f"Assistant: {msg.get('content', '')}")
-        
-        # Add current user message
-        conversation_parts.append(f"User: {user_message}")
-        conversation_parts.append("Assistant:")
-        
+            for msg in conversation_history:
+                # Assuming the frontend sends 'user' and 'ai' roles
+                # Gemini expects 'user' and 'model'
+                role = 'user' if msg.get('sender') == 'user' else 'model'
+                full_conversation.append({
+                    'role': role,
+                    'parts': [msg.get('content', '')]
+                })
+
+        # Add the current user message
+        full_conversation.append({
+            'role': 'user',
+            'parts': [user_message]
+        })
+
         # Generate response
         response = model.generate_content(
-            "\n".join(conversation_parts),
-            safety_settings=[
-                {
-                    "category": "HARM_CATEGORY_HARASSMENT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    "category": "HARM_CATEGORY_HATE_SPEECH", 
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                }
-            ]
+            full_conversation,
+            # ... safety settings
         )
-        
+# ...        
         # Check for safety issues
         safety_flags = []
         if response.prompt_feedback and response.prompt_feedback.block_reason:

@@ -92,26 +92,25 @@ WSGI_APPLICATION = "project.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database configuration
-if ENV_CONFIG['DATABASE_URL'] and dj_database_url:
+if ENV_CONFIG.get("DATABASE_URL"):
     try:
         DATABASES = {
-            'default': dj_database_url.config(
-                default=ENV_CONFIG['DATABASE_URL'],
+            "default": dj_database_url.config(
+                default=ENV_CONFIG["DATABASE_URL"],
                 conn_max_age=600,
-                ssl_require=True
+                ssl_require=True,
             )
         }
-
-        logger.info("Using PostgreSQL from DATABASE_URL (Render)")
+        logger.info("✅ Using PostgreSQL from DATABASE_URL")
     except Exception as e:
-        logger.error(f"Failed to parse DATABASE_URL: {e}")
+        logger.error(f"❌ Failed to parse DATABASE_URL: {e}")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
                 "NAME": BASE_DIR / "db.sqlite3",
             }
         }
-        logger.info("Falling back to SQLite database")
+        logger.info("➡️ Falling back to SQLite")
 else:
     DATABASES = {
         "default": {
@@ -119,7 +118,7 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-    logger.info("Using SQLite database (no DATABASE_URL provided)")
+    logger.info("✅ Using SQLite (no DATABASE_URL found)")
 
 
 # Password validation

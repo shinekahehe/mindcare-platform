@@ -664,6 +664,7 @@ def gemini_chat_api(request):
         
         # Debug: Log conversation history length
         print(f"Received message: '{user_message}' with {len(conversation_history)} previous messages")
+        print(f"Conversation history: {conversation_history}")
         
         if not user_message:
             return JsonResponse({
