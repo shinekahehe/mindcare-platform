@@ -864,7 +864,7 @@
         async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
-            
+            const originalHistoryLength = chatHistory.length;
             if (!message || isTyping) return;
             
             // Clear input
@@ -872,13 +872,13 @@
             
             // Add user message to chat
             addMessage(message, 'user');
-            
+            const previousConversationHistory = chatHistory.slice(0, chatHistory.length - 1);
             // Show typing indicator
             showTypingIndicator();
             
             try {
                 // Call Gemini API
-                console.log('Sending message with conversation history:', chatHistory.length, 'messages');
+                console.log('Sending message with conversation history:',  previousConversationHistory.length, 'messages');
                 const response = await fetch('/api/gemini-chat/', {
                     method: 'POST',
                     headers: {
@@ -886,8 +886,8 @@
                         'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify({
-                        message: message,
-                        conversation_history: chatHistory
+                        message: message, // Still send the message separately
+                        conversation_history: chatHistory // Send the full history, including the current message
                     })
                 });
                 

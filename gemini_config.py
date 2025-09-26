@@ -181,7 +181,7 @@ def get_gemini_model():
     
     try:
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.5-flash",
             generation_config={
                 "temperature": 0.7,
                 "top_p": 0.8,
@@ -239,37 +239,55 @@ def generate_mental_health_response(user_message, conversation_history=None):
         }
     
     try:
-        # Build conversation context as a list of message objects
-        # The system prompt must be handled separately or integrated into the first message
-        # Let's assume a simpler approach for now to debug the context loss
+        # Build conversation context
+        conversation_parts = [MENTAL_HEALTH_SYSTEM_PROMPT]
+        
+        # --- FIX: Clean the incoming history array ---
+        clean_history = conversation_history[:] if conversation_history else []
+        
+        # The last message in the list is always the current user_message, 
+        # sent prematurely by the frontend. Remove it so we can append it cleanly later.
+        if clean_history and clean_history[-1].get('sender') == 'user' and clean_history[-1].get('content') == user_message:
+            clean_history.pop()
+        
+        # Add conversation history up to the last AI response (or second to last user message)
+        if clean_history:
+            # Only iterate over the cleaned history
+            for msg in clean_history[-6:]:  # Keep last 6 messages for context [cite: 2]
+                if msg.get('sender') == 'user':
+                    conversation_parts.append(f"User: {msg.get('content', '')}")
+                elif msg.get('sender') == 'ai':
+                    # Add AI response to the history correctly
+                    conversation_parts.append(f"Assistant: {msg.get('content', '')}")
 
-        # Start with the system prompt
-        full_conversation = [
-            {'role': 'user', 'parts': [MENTAL_HEALTH_SYSTEM_PROMPT]}
-        ]
-
-        if conversation_history:
-            for msg in conversation_history:
-                # Assuming the frontend sends 'user' and 'ai' roles
-                # Gemini expects 'user' and 'model'
-                role = 'user' if msg.get('sender') == 'user' else 'model'
-                full_conversation.append({
-                    'role': role,
-                    'parts': [msg.get('content', '')]
-                })
-
-        # Add the current user message
-        full_conversation.append({
-            'role': 'user',
-            'parts': [user_message]
-        })
-
+# Add current user message
+        conversation_parts.append(f"User: {user_message}")
+        conversation_parts.append("Assistant:")
+# ...
+        
         # Generate response
         response = model.generate_content(
-            full_conversation,
-            # ... safety settings
+            "\n".join(conversation_parts),
+            safety_settings=[
+                {
+                    "category": "HARM_CATEGORY_HARASSMENT",
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH", 
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                }
+            ]
         )
-# ...        
+        
         # Check for safety issues
         safety_flags = []
         if response.prompt_feedback and response.prompt_feedback.block_reason:

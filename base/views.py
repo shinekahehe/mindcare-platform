@@ -201,10 +201,6 @@ def get_mood_history_api(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def signup_api(request):
-    """Handle user signup with Supabase integration"""
-    if not SUPABASE_AVAILABLE:
-        return JsonResponse({'error': 'Supabase not configured. Please set up your .env file with Supabase credentials.'}, status=500)
-    
     try:
         data = json.loads(request.body)
         username = data.get('username')
@@ -212,232 +208,81 @@ def signup_api(request):
         password = data.get('password')
         institution_name = data.get('institution')
         role = data.get('role', 'student')
-        
-        # Validate required fields
+
         if not all([username, email, password, institution_name]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
-        
-        # Get or create institution
-        institution, created = Institution.objects.get_or_create(name=institution_name)
-        
-        # Create user in Supabase
-        supabase = get_supabase_client()
-        auth_response = supabase.auth.sign_up({
-            "email": email,
-            "password": password,
-            "options": {
-                "data": {
-                    "username": username,
-                    "institution": institution_name,
-                    "role": role
-                }
-            }
+
+        institution, _ = Institution.objects.get_or_create(name=institution_name)
+
+        # Create Django user
+        django_user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+
+        # Create profile
+        UserProfile.objects.create(
+            user=django_user,
+            institution=institution,
+            role=role
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Account created successfully',
+            'redirect_url': '/mindcare-home/'
         })
-        
-        if auth_response.user:
-            # Create Django user
-            django_user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password
-            )
-            
-            # Create user profile
-            UserProfile.objects.create(
-                user=django_user,
-                institution=institution,
-                role=role,
-                supabase_user_id=auth_response.user.id
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Account created successfully',
-                'user_id': auth_response.user.id,
-                'redirect_url': '/mindcare-home/'
-            })
-        else:
-            return JsonResponse({'error': 'Failed to create account'}, status=400)
-            
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_api(request):
-    """Handle user login with backup system for testing"""
     try:
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-        
+
         if not all([email, password]):
-            return JsonResponse({'error': 'Email and password are required'}, status=400)
-        
-        # Backup login system - works with any credentials for testing
-        # This bypasses email confirmation requirements
-        
-        # Check for test/demo credentials first
-        if email in ['test@example.com', 'demo@mindcare.com'] and password in ['test123', 'demo123']:
-            # Create a demo user session
+            return JsonResponse({'error': 'Email and password required'}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        user_auth = authenticate(username=user.username, password=password)
+        if user_auth:
+            django_login(request, user_auth)
+            profile = UserProfile.objects.get(user=user_auth)
             return JsonResponse({
                 'success': True,
-                'message': 'Login successful (Demo Mode)',
+                'message': 'Login successful',
                 'user': {
-                    'id': 'demo-user-123',
-                    'email': email,
-                    'username': 'Demo User',
-                    'role': 'student',
-                    'institution': 'Demo University'
+                    'email': user_auth.email,
+                    'username': user_auth.username,
+                    'role': profile.role,
+                    'institution': profile.institution.name
                 },
-                'access_token': 'demo-token-123',
                 'redirect_url': '/mindcare-home/'
             })
-        elif email == 'admin@test.com' and password == 'admin123':
-            # Create an admin demo user session
-            try:
-                # Get or create admin user
-                admin_user, created = User.objects.get_or_create(
-                    username='admin@test.com',
-                    defaults={
-                        'email': 'admin@test.com',
-                        'first_name': 'Admin',
-                        'last_name': 'User'
-                    }
-                )
-                
-                # Get or create Demo University institution
-                demo_institution, inst_created = Institution.objects.get_or_create(
-                    name='Demo University'
-                )
-                
-                # Create or update admin profile
-                admin_profile, profile_created = UserProfile.objects.get_or_create(
-                    user=admin_user,
-                    defaults={
-                        'institution': demo_institution,
-                        'role': 'admin',
-                        'supabase_user_id': 'admin-user-123'
-                    }
-                )
-                
-                # Update profile if it already existed
-                if not profile_created:
-                    admin_profile.role = 'admin'
-                    admin_profile.institution = demo_institution
-                    admin_profile.supabase_user_id = 'admin-user-123'
-                    admin_profile.save()
-                
-                # Login the user
-                django_login(request, admin_user)
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Login successful (Admin Demo Mode)',
-                    'user': {
-                        'id': 'admin-user-123',
-                        'email': email,
-                        'username': 'Admin User',
-                        'role': 'admin',
-                        'institution': 'Demo University'
-                    },
-                    'access_token': 'admin-token-123',
-                    'redirect_url': '/mindcare-home/'
-                })
-            except Exception as e:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'Admin login failed: {str(e)}'
-                })
-        
-        # Try Supabase authentication if available, but don't fail if email not confirmed
-        if SUPABASE_AVAILABLE:
-            try:
-                supabase = get_supabase_client()
-                auth_response = supabase.auth.sign_in_with_password({
-                    "email": email,
-                    "password": password
-                })
-                
-                if auth_response.user:
-                    # Get user profile from Django if exists
-                    try:
-                        django_user = User.objects.get(email=email)
-                        user_profile = UserProfile.objects.get(user=django_user)
-                        
-                        # Log in the user in Django
-                        django_login(request, django_user)
-                        
-                        return JsonResponse({
-                            'success': True,
-                            'message': 'Login successful',
-                            'user': {
-                                'id': auth_response.user.id,
-                                'email': auth_response.user.email,
-                                'username': django_user.username,
-                                'role': user_profile.role,
-                                'institution': user_profile.institution.name
-                            },
-                            'access_token': auth_response.session.access_token,
-                            'redirect_url': '/mindcare-home/'
-                        })
-                    except (User.DoesNotExist, UserProfile.DoesNotExist):
-                        # Create a temporary user session even if profile doesn't exist
-                        return JsonResponse({
-                            'success': True,
-                            'message': 'Login successful (Temporary Session)',
-                            'user': {
-                                'id': auth_response.user.id,
-                                'email': auth_response.user.email,
-                                'username': email.split('@')[0],
-                                'role': 'student',
-                                'institution': 'Unknown'
-                            },
-                            'access_token': auth_response.session.access_token,
-                            'redirect_url': '/mindcare-home/'
-                        })
-            except Exception as supabase_error:
-                # If Supabase fails (e.g., email not confirmed), use backup system
-                print(f"Supabase login failed: {supabase_error}")
-                pass
-        
-        # Fallback: Allow any email/password combination for testing
-        # This ensures users can always login during development
-        return JsonResponse({
-            'success': True,
-            'message': 'Login successful (Backup Mode)',
-            'user': {
-                'id': f'backup-{hash(email) % 10000}',
-                'email': email,
-                'username': email.split('@')[0].title(),
-                'role': 'student',
-                'institution': 'Test University'
-            },
-            'access_token': f'backup-token-{hash(email) % 10000}',
-            'redirect_url': '/mindcare-home/'
-        })
-            
+        else:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
     except Exception as e:
-        return JsonResponse({'error': f'Login error: {str(e)}'}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def logout_api(request):
-    """Handle user logout"""
-    if not SUPABASE_AVAILABLE:
-        return JsonResponse({'error': 'Supabase not configured. Please set up your .env file with Supabase credentials.'}, status=500)
-    
-    try:
-        supabase = get_supabase_client()
-        supabase.auth.sign_out()
-        
-        # Logout from Django
-        from django.contrib.auth import logout
-        logout(request)
-        
-        return JsonResponse({'success': True, 'message': 'Logged out successfully'})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    from django.contrib.auth import logout
+    logout(request)
+    return JsonResponse({'success': True, 'message': 'Logged out successfully'})
+
 
 @csrf_exempt
 def healthz(request):
